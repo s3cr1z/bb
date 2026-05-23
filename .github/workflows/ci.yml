@@ -1,0 +1,110 @@
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Cancel in-flight runs of the same ref when a new push lands.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.edition }} on windows-latest
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The whole point of this project is that one module works on both
+        # editions. Both must stay green or we've broken the contract.
+        edition:
+          - desktop   # Windows PowerShell 5.1 (built into windows-latest)
+          - core      # PowerShell 7.x (also preinstalled as 'pwsh')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET (8.0 for tests + 10.0 for SDK features)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: dotnet restore
+        run: dotnet restore Bb.sln
+
+      - name: Install Pester 5 + PSScriptAnalyzer (Desktop)
+        if: matrix.edition == 'desktop'
+        shell: powershell
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -MinimumVersion 5.5.0 -Force -SkipPublisherCheck -Scope CurrentUser
+          Install-Module PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser
+
+      - name: Install Pester 5 + PSScriptAnalyzer (Core)
+        if: matrix.edition == 'core'
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -MinimumVersion 5.5.0 -Force -SkipPublisherCheck -Scope CurrentUser
+          Install-Module PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser
+
+      - name: Build solution + stage Bb.Core.dll into module/bin/ (Desktop)
+        if: matrix.edition == 'desktop'
+        shell: powershell
+        run: ./scripts/build.ps1 -Configuration Release -NoRestore
+
+      - name: Build solution + stage Bb.Core.dll into module/bin/ (Core)
+        if: matrix.edition == 'core'
+        shell: pwsh
+        run: ./scripts/build.ps1 -Configuration Release -NoRestore
+
+      - name: Test (PSScriptAnalyzer + dotnet test + Pester) — Desktop
+        if: matrix.edition == 'desktop'
+        shell: powershell
+        run: ./scripts/test.ps1 -Configuration Release
+
+      - name: Test (PSScriptAnalyzer + dotnet test + Pester) — Core
+        if: matrix.edition == 'core'
+        shell: pwsh
+        run: ./scripts/test.ps1 -Configuration Release
+
+      - name: Verify Test-ModuleManifest passes
+        shell: pwsh
+        run: |
+          $manifest = Test-ModuleManifest -Path ./module/bb.psd1 -ErrorAction Stop
+          $manifest | Format-List Name, Version, PowerShellVersion, CompatiblePSEditions, ExportedCommands
+
+      - name: Verify Import-Module + 'bb <prompt>' smoke (Desktop)
+        if: matrix.edition == 'desktop'
+        shell: powershell
+        run: |
+          Import-Module ./module/bb.psd1 -Force -ErrorAction Stop
+          $response = Invoke-BbAiQuery -UserPrompt 'hello world' -Stub
+          if (-not $response.Command) { throw 'Stub cmdlet returned an empty Command.' }
+          Write-Host "OK: $($response.Command)"
+
+      - name: Verify Import-Module + 'bb <prompt>' smoke (Core)
+        if: matrix.edition == 'core'
+        shell: pwsh
+        run: |
+          Import-Module ./module/bb.psd1 -Force -ErrorAction Stop
+          $response = Invoke-BbAiQuery -UserPrompt 'hello world' -Stub
+          if (-not $response.Command) { throw 'Stub cmdlet returned an empty Command.' }
+          Write-Host "OK: $($response.Command)"

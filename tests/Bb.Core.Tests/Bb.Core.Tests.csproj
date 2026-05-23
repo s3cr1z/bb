@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      The Bb.Core library itself targets netstandard2.0 so it can be loaded
+      by Windows PowerShell 5.1 and PowerShell 7.x. The xUnit harness only
+      runs at build time on .NET 8, so we test against net8.0 here. xUnit
+      verifies the C# contracts (enum ordering, model defaults); the real
+      end-to-end wiring is exercised by the Pester suite in tests/Bb.Module.Tests.
+    -->
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Allow the test runtime to roll forward to newer .NET majors when the
+         net8.0 runtime isn't installed locally (e.g. on a box that only has the
+         .NET 10 SDK). CI uses actions/setup-dotnet to install net8 explicitly. -->
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Bb.Core\Bb.Core.csproj" />
+  </ItemGroup>
+
+</Project>
