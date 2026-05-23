@@ -1,0 +1,85 @@
+# --- .NET / C# build artifacts -----------------------------------------------
+bin/
+obj/
+*.dll
+*.pdb
+*.exe
+*.cache
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+artifacts/
+[Dd]ebug/
+[Rr]elease/
+[Xx]64/
+[Xx]86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+project.lock.json
+project.fragment.lock.json
+.vs/
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+.fake/
+
+# Exception: ship the compiled binary with the module distribution
+# Add explicit pin once we know the final layout, e.g.:
+# !bb/bin/Bb.Core.dll
+
+# --- NuGet --------------------------------------------------------------------
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# --- PowerShell ---------------------------------------------------------------
+*.psd1.bak
+*.psm1.bak
+Output/
+PSScriptAnalyzerSettings.psd1.bak
+
+# --- Pester / test output -----------------------------------------------------
+TestResults.xml
+TestResults/
+coverage.xml
+coverage/
+*.coverage
+*.coveragexml
+
+# --- IDE / editor -------------------------------------------------------------
+.idea/
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# --- OS noise -----------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# --- Local secrets / config ---------------------------------------------------
+*.local.json
+*.local.psd1
+secrets.json
+.env
+.env.*
+!.env.example
+
+# --- bb-specific --------------------------------------------------------------
+# User config lives in %APPDATA%\bb\ at runtime, never in the repo
+Output/bb/
+*.bb.local
