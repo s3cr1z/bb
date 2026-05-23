@@ -1,3 +1,21 @@
+# ============================================================================
+# CI workflow for the bb CLI.
+#
+# This file lives in docs/ for one reason: the bot account that opened the
+# scaffold PR could not push .github/workflows/* without GitHub's `workflow`
+# OAuth scope. To activate this CI, copy this file to .github/workflows/ci.yml
+# in a follow-up commit you (a human with workflow scope) push directly, or
+# create it via the GitHub web UI (which uses a different auth path):
+#
+#     1. Open https://github.com/s3cr1z/bb/new/main
+#     2. Name the file .github/workflows/ci.yml
+#     3. Paste the contents below (everything from `name: ci` to EOF)
+#     4. Commit
+#
+# Until you do that step, CI is documented but not running. The scripts under
+# ./scripts/build.ps1 and ./scripts/test.ps1 are the source of truth and run
+# identically locally.
+# ============================================================================
 name: ci
 
 on:
