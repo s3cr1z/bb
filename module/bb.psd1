@@ -26,7 +26,7 @@
     # --- Explicit exports ----------------------------------------------------
     # No wildcards — wildcards block PSGallery's analyzer at publish time and
     # slow down module auto-loading. We list every public surface explicitly.
-    FunctionsToExport    = @('Invoke-Bb', 'Set-BbConfig', 'Use-BbProvider')
+    FunctionsToExport    = @('Invoke-Bb', 'Set-BbConfig', 'Use-BbProvider', 'Get-BbConfig', 'Remove-BbProvider')
     CmdletsToExport      = @('Invoke-BbAiQuery')
     AliasesToExport      = @('bb')
     VariablesToExport    = @()
@@ -44,7 +44,7 @@
             LicenseUri   = 'https://github.com/s3cr1z/bb/blob/main/LICENSE'
             ProjectUri   = 'https://github.com/s3cr1z/bb'
             IconUri      = ''
-            ReleaseNotes = 'Pre-alpha scaffold (PR 2). No functional behavior yet — PR 3 lands the MVP.'
+            ReleaseNotes = 'MVP (PR 3): real provider config, DPAPI-backed credential storage, OpenAI-compatible streaming chat completions, JSON-schema validation, upgrade-only regex safety classifier, interactive action bar with [Y/n/edit] confirmation, and bb --debug timing instrumentation.'
         }
     }
 }

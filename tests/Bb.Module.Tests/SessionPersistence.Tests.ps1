@@ -29,6 +29,14 @@ AfterAll {
 
 Describe 'bb session-state persistence (the contract test)' {
 
+    BeforeAll {
+        # Replace the interactive [Y/n/e/q] prompt for the duration of the
+        # describe block. Without this, every test hangs waiting on stdin.
+        # The mock lives inside the bb module's session state so Invoke-Bb's
+        # call site resolves to this override.
+        Mock -ModuleName bb Read-BbConfirmation { 'execute' }
+    }
+
     BeforeEach {
         # Snapshot $PWD so we can restore it regardless of what each It block does
         $script:OriginalLocation = (Get-Location).Path
@@ -59,7 +67,7 @@ Describe 'bb session-state persistence (the contract test)' {
             return
         }
 
-        Invoke-Bb 'go up one directory'
+        Invoke-Bb -Yes 'go up one directory'
         (Get-Location).Path | Should -Be $expectedAfter
         (Get-Location).Path | Should -Not -Be $before
     }
@@ -77,7 +85,7 @@ Describe 'bb session-state persistence (the contract test)' {
         Remove-Variable -Name bbContractGlobal -Scope Global -ErrorAction Ignore
         $global:bbContractGlobal = $null
 
-        Invoke-Bb 'set the global flag'
+        Invoke-Bb -Yes 'set the global flag'
 
         $global:bbContractGlobal | Should -Be 42
     }
@@ -92,7 +100,7 @@ Describe 'bb session-state persistence (the contract test)' {
             }
         }
 
-        Invoke-Bb find all txt files modified today | Out-Null
+        Invoke-Bb -Yes find all txt files modified today | Out-Null
 
         Should -Invoke -ModuleName bb -CommandName Invoke-BbAiQuery -Times 1 -ParameterFilter {
             $UserPrompt -eq 'find all txt files modified today'
@@ -102,6 +110,6 @@ Describe 'bb session-state persistence (the contract test)' {
     It "throws when the prompt is empty or whitespace" {
         # Use Pester's `Should -Throw` rather than catching manually so the
         # error category and message are surfaced in the test output.
-        { Invoke-Bb '   ' } | Should -Throw -ExpectedMessage '*prompt cannot be empty*'
+        { Invoke-Bb -Yes '   ' } | Should -Throw -ExpectedMessage '*prompt cannot be empty*'
     }
 }

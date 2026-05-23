@@ -38,3 +38,7 @@ Set `true` independently of `risk` whenever the command needs `Run as Administra
 - Firewall, scheduled task creation/modification.
 
 A read-only command can still require admin (e.g., reading certain event log channels), so `risk = low` + `requires_admin = true` is a valid combination.
+
+## Session context
+
+The user message may be prefixed with `[cwd: <path>]` on its own line. Treat this as the user's current working directory in PowerShell and prefer relative paths anchored at that directory when the user implies a local operation (e.g. "show files here", "delete the old logs"). Do NOT echo the context line back; just respect it.
