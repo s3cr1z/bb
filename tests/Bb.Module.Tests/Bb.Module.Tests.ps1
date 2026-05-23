@@ -42,6 +42,8 @@ Describe 'bb manifest' {
         $script:Manifest.ExportedFunctions.Keys | Should -Contain 'Invoke-Bb'
         $script:Manifest.ExportedFunctions.Keys | Should -Contain 'Set-BbConfig'
         $script:Manifest.ExportedFunctions.Keys | Should -Contain 'Use-BbProvider'
+        $script:Manifest.ExportedFunctions.Keys | Should -Contain 'Get-BbConfig'
+        $script:Manifest.ExportedFunctions.Keys | Should -Contain 'Remove-BbProvider'
     }
 
     It 'lists explicit cmdlet exports (no wildcards)' {

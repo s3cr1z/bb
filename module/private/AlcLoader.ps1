@@ -7,7 +7,7 @@ function Initialize-BbAssemblyLoadContext {
         PR 2 stub. PR 3 implements the actual ALC isolation to keep our
         pinned System.Security.Cryptography.ProtectedData 8.0.0 (DPAPI)
         from colliding with PowerShell 7's inbox 6.x version. On PS 5.1
-        this function is not called — NestedModules in bb.psd1 handles the
+        this function is not called - NestedModules in bb.psd1 handles the
         load normally because the inbox-collision problem does not exist.
 
     .PARAMETER ModuleRoot

@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# bb.psm1 — script wrapper for the bb module
+# bb.psm1 - script wrapper for the bb module
 #
 # Loads private helpers, then public functions, then sets the 'bb' alias.
 # Cross-edition: must import cleanly on Windows PowerShell 5.1 (Desktop) AND
@@ -11,6 +11,41 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $script:BbModuleRoot = $PSScriptRoot
+$script:BbBinPath    = Join-Path -Path $script:BbModuleRoot -ChildPath 'bin'
+
+# --- Module-private assembly resolver (Windows PowerShell 5.1) ------------
+# System.Text.Json 6.x and System.Security.Cryptography.ProtectedData 8.x
+# both have transitive deps (System.Memory, System.Buffers, etc.) that PS 5.1
+# does not ship in its private bin directory and that the Fusion loader
+# cannot find via NestedModules' load path. We register a per-AppDomain
+# resolver pointing at our module/bin/ so dependencies resolve at runtime.
+# On PS 7+ the default AssemblyLoadContext handles this; the handler is a
+# no-op there since the resolver only fires on misses.
+# Eagerly pre-load every dependency DLL from module/bin/ so all of
+# System.Text.Json's transitive deps live in the AppDomain before any cmdlet
+# call. .NET Framework's Fusion loader does not search module/bin/ on its
+# own, so we have to either ship a binding redirect (we can't - we don't
+# own powershell.exe.config) or do this manually.
+if (Test-Path -LiteralPath $script:BbBinPath) {
+    foreach ($dll in (Get-ChildItem -LiteralPath $script:BbBinPath -Filter '*.dll' -File -ErrorAction Ignore)) {
+        if ($dll.Name -ieq 'Bb.Core.dll') { continue }
+        try { [System.Reflection.Assembly]::LoadFrom($dll.FullName) | Out-Null }
+        catch { Write-Verbose ("bb.psm1: pre-load of '{0}' skipped: {1}" -f $dll.Name, $_.Exception.Message) }
+    }
+}
+
+# Belt-and-suspenders: register a compiled AssemblyResolve handler so that
+# any straggling transitive deps (e.g. System.Memory 4.0.1.1 referenced in
+# System.Text.Json's metadata when we ship 4.0.1.2) still resolve. The
+# resolver is in C# (BbAssemblyResolver) for performance and to avoid
+# PowerShell-scriptblock stack costs that would otherwise add up across
+# the hundreds of probes Pester triggers during test discovery.
+# NestedModules in bb.psd1 has already loaded Bb.Core.dll by this point.
+try {
+    [Bb.Core.Services.BbAssemblyResolver]::Register($script:BbBinPath)
+} catch {
+    Write-Warning ("bb.psm1: failed to register assembly resolver: {0}" -f $_.Exception.Message)
+}
 
 # --- Dot-source helpers in dependency order --------------------------------
 $privateScripts = @(
@@ -30,6 +65,8 @@ $publicScripts = @(
     'Invoke-Bb.ps1'
     'Set-BbConfig.ps1'
     'Use-BbProvider.ps1'
+    'Get-BbConfig.ps1'
+    'Remove-BbProvider.ps1'
 )
 foreach ($name in $publicScripts) {
     $path = Join-Path -Path $script:BbModuleRoot -ChildPath "public/$name"

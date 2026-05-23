@@ -12,13 +12,28 @@
     <Description>Native PowerShell binary cmdlets for the bb CLI (compatible with Windows PowerShell 5.1 and PowerShell 7.4+).</Description>
     <!-- PolySharp lets us use modern C# (records, file-scoped namespaces, etc.) on netstandard2.0 -->
     <PolySharpIncludeRuntimeSupportedAttributes>true</PolySharpIncludeRuntimeSupportedAttributes>
+    <!-- Library projects don't normally copy transitive deps to the output dir.
+         We need them because the bb module ships as a self-contained payload
+         under module/bin/ — PowerShell does not know to pull them from NuGet. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Single-DLL cross-edition: targets the contract for PS 5.1 and works in 7.x -->
-    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" />
+    <!-- Single-DLL cross-edition: targets the contract for PS 5.1 and works in 7.x.
+         ExcludeAssets="runtime" stops the contract System.Management.Automation.dll
+         from being copied into module/bin/ — shipping it would shadow the host
+         PowerShell's real implementation and break Import-Module instantly. -->
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" ExcludeAssets="runtime" />
     <!-- Enables modern C# language features on netstandard2.0 -->
     <PackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
+    <!-- DPAPI: pinned at 8.0.0 (LTS). Available on .NET Framework 4.7.2+ (PS 5.1)
+         and netcoreapp3.0+ (PS 7+). PowerShell 7.4 does NOT pre-ship this
+         assembly, so a same-process collision is not a concern in practice. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <!-- JSON serialization. 6.0.10 is the LTS-aligned line for netstandard2.0
+         that ships transitive dependencies (Bcl.AsyncInterfaces, Encodings.Web,
+         Memory, Threading.Tasks.Extensions) without forcing newer .NET runtimes. -->
+    <PackageReference Include="System.Text.Json" Version="6.0.10" />
   </ItemGroup>
 
   <ItemGroup>
@@ -40,8 +55,16 @@
     <PropertyGroup>
       <ModuleBinDir>$(MSBuildThisFileDirectory)..\..\module\bin\</ModuleBinDir>
     </PropertyGroup>
+    <ItemGroup>
+      <!-- Stage Bb.Core.dll + every runtime dependency that ended up in the
+           build output. PowerShellStandard.Library is PrivateAssets="all" so
+           it isn't here; PolySharp is build-only so it isn't here either.
+           What IS here: System.Text.Json + System.Security.Cryptography.ProtectedData
+           and their transitive deps (Bcl.AsyncInterfaces, Encodings.Web, etc.). -->
+      <StagedAssemblies Include="$(OutputPath)*.dll" />
+    </ItemGroup>
     <MakeDir Directories="$(ModuleBinDir)" />
-    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll"
+    <Copy SourceFiles="@(StagedAssemblies)"
           DestinationFolder="$(ModuleBinDir)"
           SkipUnchangedFiles="true" />
   </Target>
