@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AssemblyName>Bb.Core</AssemblyName>
+    <RootNamespace>Bb.Core</RootNamespace>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <Description>Native PowerShell binary cmdlets for the bb CLI (compatible with Windows PowerShell 5.1 and PowerShell 7.4+).</Description>
+    <!-- PolySharp lets us use modern C# (records, file-scoped namespaces, etc.) on netstandard2.0 -->
+    <PolySharpIncludeRuntimeSupportedAttributes>true</PolySharpIncludeRuntimeSupportedAttributes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Single-DLL cross-edition: targets the contract for PS 5.1 and works in 7.x -->
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" />
+    <!-- Enables modern C# language features on netstandard2.0 -->
+    <PackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Embed AI response schema + system prompt so the validator + classifier can never drift from the compiled code -->
+    <EmbeddedResource Include="Models\ai-response.schema.json" />
+    <EmbeddedResource Include="Resources\system-prompt.md" />
+  </ItemGroup>
+
+  <!--
+    Post-build: stage the binary cmdlet DLL into the PowerShell module's bin/
+    folder so 'Import-Module module/bb.psd1' picks it up via NestedModules.
+    This is what lets 'dotnet build' produce a runnable module in one step.
+    Note we deliberately stage only Bb.Core.dll (no reference assemblies) —
+    PowerShellStandard.Library is marked PrivateAssets="all" so it is not
+    copied to bin/ in the first place, and netstandard's facade assemblies
+    are provided by the host PowerShell runtime.
+  -->
+  <Target Name="StageModuleBinaries" AfterTargets="Build">
+    <PropertyGroup>
+      <ModuleBinDir>$(MSBuildThisFileDirectory)..\..\module\bin\</ModuleBinDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(ModuleBinDir)" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll"
+          DestinationFolder="$(ModuleBinDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

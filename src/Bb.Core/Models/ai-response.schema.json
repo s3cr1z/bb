@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/s3cr1z/bb/schemas/ai-response.schema.json",
+  "title": "bb AI response",
+  "description": "The strict response shape the LLM must produce for every bb invocation. Validated in the C# core before any execution.",
+  "type": "object",
+  "required": ["command", "risk", "requires_admin"],
+  "additionalProperties": false,
+  "properties": {
+    "command": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "description": "A single PowerShell statement or pipeline runnable in PowerShell 5.1 or later."
+    },
+    "explanation": {
+      "type": "string",
+      "maxLength": 1024,
+      "description": "One-sentence human-readable rationale shown above the action bar."
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "low = read-only/harmless; medium = mutates user state non-trivially; high = deletes data, alters system, stops services, or runs downloaded code."
+    },
+    "requires_admin": {
+      "type": "boolean",
+      "description": "True if the command needs an elevated PowerShell session."
+    }
+  }
+}
